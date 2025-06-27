@@ -13,6 +13,15 @@ nltk.download('punkt')
 cohere_api_key = os.getenv('COHERE_API_KEY')
 
 class PDFRAG:
+    """
+    Class to handle PDF RAG (Retrieval-Augmented Generation) using Cohere embeddings and Chroma vector store.
+    This class loads a PDF, splits it into chunks, builds or loads a vector store, and allows querying the PDF content.
+    Attributes:
+        pdf_path (str): Path to the PDF file.
+        chunk_size (int): Size of text chunks to split the PDF content into.
+        llm (object): Language model for generating responses.
+        db_dir (str): Directory to store the vector database.   
+    """
     def __init__(
             self, pdf_path: str, 
             chunk_size: int,
@@ -31,6 +40,8 @@ class PDFRAG:
             )
         
     def load_pdf(self):
+        """ Load and split the PDF file into pages.
+            """
         try:
             pdf_loader = PyPDFLoader(self.pdf_path)
             pages = pdf_loader.load_and_split()
@@ -41,14 +52,25 @@ class PDFRAG:
             return documents , metadatas
         except Exception as e:
             print(f"Error For read pdf {e}")
+            return None, None
     
     def split_text(self, documents, metadatas):
+        """ Split the text content into chunks.
+        Args:
+            documents (list): List of text content from the PDF.
+        """ 
         text_splitter = NLTKTextSplitter(
             chunk_size= self.chunk_size
         )
         return text_splitter.create_documents(documents, metadatas=metadatas)
     
     def build_vectorstore(self, chunks):
+        """ Build a vector store from the text chunks.
+        Args:
+            chunks (list): List of text chunks to be stored in the vector store.
+        Returns:
+            vector_db (Chroma): The vector store containing the text chunks.
+        """
         docs_ids = list( range( len(chunks) ) )
         docs_ids = [ str(d) for d in docs_ids ]
 
@@ -74,14 +96,18 @@ class PDFRAG:
             else:
                 print("📦 Vector DB not found, building a new one...")
                 docs, metas = self.load_pdf()
+                if docs is None or metas is None:
+                    raise ValueError(f"Failed to load PDF: {self.pdf_path}")  # <-- add this
                 chunks = self.split_text(docs, metas)
                 self.vector_db = self.build_vectorstore(chunks)
                 print("🎉 New vector DB built and saved to:", self.db_dir)
 
 
     def ask_question(self, question):
-        if not self.vector_db:
-            self.load_or_build_db()
+        """ Ask a question and get an answer using the vector store and LLM.
+        Args:
+            question (str): The question to ask.
+        """
         qna_template = "\n".join([
             "Answer the next question using the provided context.",
             "If the answer is not contained in the context, say 'NO ANSWER IS AVAILABLE'",
