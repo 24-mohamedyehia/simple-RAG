@@ -52,12 +52,18 @@ $ cp .env.example .env
 ```bash
 $ python main.py
 ```
+# Run Server
+To run the FastAPI server, use the command:
+```bash
+uvicorn app:app --reload --port 5000
+```
 
 ## 🛠 Technologies
 - Python 3.11
 - LangChain
 - NLTK
 - Chromadb
+- FastAPI
 
 ## 📜 License
 This project is licensed under the MIT License See the [LICENSE](./LICENSE) file for details.
